@@ -20,17 +20,17 @@
 
 */
 
-#ifndef _DEX_DECOMPILER_V10_H_
-#define _DEX_DECOMPILER_V10_H_
+#ifndef _VDEX_DECOMPILER_010_H_
+#define _VDEX_DECOMPILER_010_H_
 
-#include "common.h"
-#include "dex.h"
-#include "dex_instruction.h"
+#include "../common.h"
+#include "../dex.h"
+#include "../dex_instruction.h"
 
 // Dex decompiler driver function using quicken_info data
-bool dexDecompilerV10_decompile(const u1 *, dexMethod *, const u1 *, u4, bool);
+bool vdex_decompiler_010_decompile(const u1 *, dexMethod *, const u1 *, u4, bool);
 
 // Dex decompiler walk method that simply disassembles code blocks
-void dexDecompilerV10_walk(const u1 *, dexMethod *);
+void vdex_decompiler_010_walk(const u1 *, dexMethod *);
 
 #endif

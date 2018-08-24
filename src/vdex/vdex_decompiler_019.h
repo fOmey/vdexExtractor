@@ -20,19 +20,17 @@
 
 */
 
-#ifndef _VDEX_H_
-#define _VDEX_H_
+#ifndef _VDEX_DECOMPILER_019_H_
+#define _VDEX_DECOMPILER_019_H_
 
-#include <zlib.h>
-#include "common.h"
+#include "../common.h"
+#include "../dex.h"
+#include "../dex_instruction.h"
 
-typedef struct {
-  void (*dumpHeaderInfo)(const u1 *);
-  void (*dumpDepsInfo)(const u1 *);
-  int (*process)(const char *, const u1 *, size_t, const runArgs_t *);
-} vdex_env_t;
+// Dex decompiler driver function using quicken_info data
+bool vdex_decompiler_019_decompile(const u1 *, dexMethod *, const u1 *, u4, bool);
 
-bool vdex_initEnv(const u1 *, vdex_env_t *);
-bool vdex_updateChecksums(const char *, int, u4 *, const runArgs_t *);
+// Dex decompiler walk method that simply disassembles code blocks
+void vdex_decompiler_019_walk(const u1 *, dexMethod *);
 
 #endif

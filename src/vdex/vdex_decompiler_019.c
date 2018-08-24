@@ -20,8 +20,8 @@
 
 */
 
-#include "dex_decompiler_v10.h"
-#include "utils.h"
+#include "vdex_decompiler_019.h"
+#include "../utils.h"
 
 static const u1 *quicken_info_ptr;
 static size_t quicken_info_number_of_indices;
@@ -91,24 +91,36 @@ static void DecompileInvokeVirtual(u2 *insns, Code new_opcode, bool is_range) {
   }
 }
 
-bool dexDecompilerV10_decompile(const u1 *dexFileBuf,
-                                dexMethod *pDexMethod,
-                                const u1 *quickening_info,
-                                u4 quickening_size,
-                                bool decompile_return_instruction) {
+bool vdex_decompiler_019_decompile(const u1 *dexFileBuf,
+                                   dexMethod *pDexMethod,
+                                   const u1 *quickening_info,
+                                   u4 quickening_size,
+                                   bool decompile_return_instruction) {
   if (quickening_size == 0 && !decompile_return_instruction) {
     return true;
   }
 
-  dexCode *pDexCode = (dexCode *)(dexFileBuf + pDexMethod->codeOff);
-  u4 startCodeOff = dex_getFirstInstrOff(pDexMethod);
+  // We have different code items in Standard Dex and Compact Dex
+  u2 *pCode = NULL;
+  u4 codeSize = 0;
+  if (dex_checkType(dexFileBuf) == kNormalDex) {
+    dexCode *pDexCode = (dexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
+    pCode = pDexCode->insns;
+    codeSize = pDexCode->insnsSize;
+  } else {
+    cdexCode *pCdexCode = (cdexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
+    pCode = pCdexCode->insns;
+    dex_DecodeCDexFields(pCdexCode, &codeSize, NULL, NULL, NULL, NULL, true);
+  }
+
+  u4 startCodeOff = dex_getFirstInstrOff(dexFileBuf, pDexMethod);
 
   quicken_info_ptr = quickening_info;
   quicken_index = 0;
   quicken_info_number_of_indices = NumberOfIndices(quickening_size);
 
   log_dis("    quickening_size=%" PRIx32 " (%" PRIu32 ")\n", quickening_size, quickening_size);
-  initCodeIterator(pDexCode->insns, pDexCode->insns_size, startCodeOff);
+  initCodeIterator(pCode, codeSize, startCodeOff);
 
   while (isCodeIteratorDone() == false) {
     bool hasCodeChange = true;
@@ -200,10 +212,22 @@ bool dexDecompilerV10_decompile(const u1 *dexFileBuf,
   return true;
 }
 
-void dexDecompilerV10_walk(const u1 *dexFileBuf, dexMethod *pDexMethod) {
-  dexCode *pDexCode = (dexCode *)(dexFileBuf + pDexMethod->codeOff);
-  u4 startCodeOff = dex_getFirstInstrOff(pDexMethod);
-  initCodeIterator(pDexCode->insns, pDexCode->insns_size, startCodeOff);
+void vdex_decompiler_019_walk(const u1 *dexFileBuf, dexMethod *pDexMethod) {
+  // We have different code items in Standard Dex and Compact Dex
+  u2 *pCode = NULL;
+  u4 codeSize = 0;
+  if (dex_checkType(dexFileBuf) == kNormalDex) {
+    dexCode *pDexCode = (dexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
+    pCode = pDexCode->insns;
+    codeSize = pDexCode->insnsSize;
+  } else {
+    cdexCode *pCdexCode = (cdexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
+    pCode = pCdexCode->insns;
+    dex_DecodeCDexFields(pCdexCode, &codeSize, NULL, NULL, NULL, NULL, true);
+  }
+
+  u4 startCodeOff = dex_getFirstInstrOff(dexFileBuf, pDexMethod);
+  initCodeIterator(pCode, codeSize, startCodeOff);
   while (isCodeIteratorDone() == false) {
     dex_dumpInstruction(dexFileBuf, code_ptr, cur_code_off, dex_pc, false);
     codeIteratorAdvance();

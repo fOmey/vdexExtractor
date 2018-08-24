@@ -30,12 +30,23 @@ ifeq ($(DEBUG),true)
   LDFLAGS += -g -ggdb
 endif
 
+LBITS := $(shell getconf LONG_BIT)
+ifeq ($(LBITS),32)
+  # If compiling in 32bit system
+  CFLAGS += -Wno-pointer-to-int-cast
+else
+ifneq (,$(findstring -m32,$(CFLAGS)))
+  # If cross-compiling for a 32bit target from a 64bit system
+  CFLAGS += -Wno-pointer-to-int-cast
+endif
+endif
+
 .PHONY: default all clean
 
 default: $(TARGET)
 all: default
 
-OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c) $(wildcard */*.c))
 HEADERS = $(wildcard *.h)
 
 %.o: %.c $(HEADERS)
@@ -49,9 +60,10 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	-rm -f *.o
+	-rm -f */*.o
 	-rm -f $(TARGET)
 
 format:
 	clang-format -style="{BasedOnStyle: Google, \
     IndentWidth: 2, Cpp11BracedListStyle: false, \
-    BinPackParameters: false, ColumnLimit: 100}" -i -sort-includes *.c *.h
+    BinPackParameters: false, ColumnLimit: 100}" -i -sort-includes *.c *.h */*.c */*.h

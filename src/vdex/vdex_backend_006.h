@@ -20,32 +20,31 @@
 
 */
 
-#ifndef _VDEX_BACKEND_V10_H_
-#define _VDEX_BACKEND_V10_H_
+#ifndef _VDEX_BACKEND_006_H_
+#define _VDEX_BACKEND_006_H_
 
-#include "common.h"
-#include "dex.h"
-#include "vdex.h"
+#include "../common.h"
+#include "../dex.h"
+#include "vdex_006.h"
 
 typedef struct __attribute__((packed)) {
-  vdexDepStrings extraStrings;
-  vdexDepTypeSet assignTypeSets;
-  vdexDepTypeSet unassignTypeSets;
-  vdexDepClassResSet classes;
-  vdexDepFieldResSet fields;
-  vdexDepMethodResSet methods;
-  vdexDepUnvfyClassesSet unvfyClasses;
-} vdexDepData_v10;
+  vdexDepStrings_006 extraStrings;
+  vdexDepTypeSet_006 assignTypeSets;
+  vdexDepTypeSet_006 unassignTypeSets;
+  vdexDepClassResSet_006 classes;
+  vdexDepFieldResSet_006 fields;
+  vdexDepMethodResSet_006 directMethods;
+  vdexDepMethodResSet_006 virtualMethods;
+  vdexDepMethodResSet_006 interfaceMethods;
+  vdexDepUnvfyClassesSet_006 unvfyClasses;
+} vdexDepData_006;
 
 typedef struct __attribute__((packed)) {
   u4 numberOfDexFiles;
-  vdexDepData_v10 *pVdexDepData;
-} vdexDeps_v10;
+  vdexDepData_006 *pVdexDepData;
+} vdexDeps_006;
 
-void *vdex_initDepsInfo_v10(const u1 *);
-void vdex_destroyDepsInfo_v10(const void *);
-void vdex_dumpDepsInfo_v10(const u1 *, const void *);
-
-int vdex_process_v10(const char *, const u1 *, const runArgs_t *);
+void vdex_backend_006_dumpDepsInfo(const u1 *);
+int vdex_backend_006_process(const char *, const u1 *, size_t, const runArgs_t *);
 
 #endif

@@ -52,7 +52,7 @@ static bool utils_readdir(infiles_t *pFiles, const char *basePath) {
       continue;
     }
 
-    char path[PATH_MAX];
+    char path[PATH_MAX + 2];
     snprintf(path, sizeof(path), "%s/%s", basePath, entry->d_name);
 
     struct stat st;
@@ -98,6 +98,8 @@ static bool utils_readdir(infiles_t *pFiles, const char *basePath) {
   closedir(dir);
   return true;
 }
+
+static bool isPowerOfTwo(uintptr_t x) { return (x & (x - 1)) == 0; }
 
 bool utils_init(infiles_t *pFiles) {
   pFiles->files = malloc(sizeof(char *));
@@ -381,3 +383,18 @@ char *utils_fileBasename(char const *path) {
     return strdup(s + 1);
   }
 }
+
+bool utils_isDir(const char *path) {
+  struct stat buf;
+  stat(path, &buf);
+  return S_ISDIR(buf.st_mode);
+}
+
+uintptr_t utils_roundDown(uintptr_t x, uintptr_t n) {
+  CHECK(isPowerOfTwo(n));
+  return (x & -n);
+}
+
+uintptr_t utils_roundUp(uintptr_t x, uintptr_t n) { return utils_roundDown(x + n - 1, n); }
+
+uintptr_t utils_allignUp(uintptr_t x, uintptr_t n) { return utils_roundUp(x, n); }

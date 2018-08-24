@@ -20,8 +20,8 @@
 
 */
 
-#include "dex_decompiler_v6.h"
-#include "utils.h"
+#include "vdex_decompiler_006.h"
+#include "../utils.h"
 
 static const u1 *quickening_info_ptr;
 static const u1 *quickening_info_end;
@@ -93,22 +93,22 @@ static void DecompileInvokeVirtual(u2 *insns, u4 dex_pc, Code new_opcode, bool i
   }
 }
 
-bool dexDecompilerV6_decompile(const u1 *dexFileBuf,
-                               dexMethod *pDexMethod,
-                               const u1 *quickening_info,
-                               u4 quickening_size,
-                               bool decompile_return_instruction) {
+bool vdex_decompiler_006_decompile(const u1 *dexFileBuf,
+                                   dexMethod *pDexMethod,
+                                   const u1 *quickening_info,
+                                   u4 quickening_size,
+                                   bool decompile_return_instruction) {
   if (quickening_size == 0 && !decompile_return_instruction) {
     return true;
   }
 
   dexCode *pDexCode = (dexCode *)(dexFileBuf + pDexMethod->codeOff);
-  u4 startCodeOff = dex_getFirstInstrOff(pDexMethod);
+  u4 startCodeOff = dex_getFirstInstrOff(dexFileBuf, pDexMethod);
 
   quickening_info_ptr = quickening_info;
   quickening_info_end = quickening_info + quickening_size;
   log_dis("    quickening_size=%" PRIx32 " (%" PRIu32 ")\n", quickening_size, quickening_size);
-  initCodeIterator(pDexCode->insns, pDexCode->insns_size, startCodeOff);
+  initCodeIterator(pDexCode->insns, pDexCode->insnsSize, startCodeOff);
 
   while (isCodeIteratorDone() == false) {
     bool hasCodeChange = true;
@@ -195,10 +195,10 @@ bool dexDecompilerV6_decompile(const u1 *dexFileBuf,
   return true;
 }
 
-void dexDecompilerV6_walk(const u1 *dexFileBuf, dexMethod *pDexMethod) {
+void vdex_decompiler_006_walk(const u1 *dexFileBuf, dexMethod *pDexMethod) {
   dexCode *pDexCode = (dexCode *)(dexFileBuf + pDexMethod->codeOff);
-  u4 startCodeOff = dex_getFirstInstrOff(pDexMethod);
-  initCodeIterator(pDexCode->insns, pDexCode->insns_size, startCodeOff);
+  u4 startCodeOff = dex_getFirstInstrOff(dexFileBuf, pDexMethod);
+  initCodeIterator(pDexCode->insns, pDexCode->insnsSize, startCodeOff);
   while (isCodeIteratorDone() == false) {
     dex_dumpInstruction(dexFileBuf, code_ptr, cur_code_off, dex_pc, false);
     codeIteratorAdvance();
