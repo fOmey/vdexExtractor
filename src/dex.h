@@ -27,6 +27,25 @@
 #include "common.h"
 #include "dex_instruction.h"
 
+// CompactDex helper constants for CodeItem decoding
+#define kRegistersSizeShift ((size_t)12)
+#define kInsSizeShift ((size_t)8)
+#define kOutsSizeShift ((size_t)4)
+#define kTriesSizeSizeShift ((size_t)0)
+#define kFlagPreHeaderRegisterSize ((u2)(0x1 << 0))
+#define kFlagPreHeaderInsSize ((u2)(0x1 << 1))
+#define kFlagPreHeaderOutsSize ((u2)(0x1 << 2))
+#define kFlagPreHeaderTriesSize ((u2)(0x1 << 3))
+#define kFlagPreHeaderInsnsSize ((u2)(0x1 << 4))
+#define kInsnsSizeShift ((size_t)5)
+#define kBitsPerByte ((size_t)8)
+// #define kInsnsSizeBits ((size_t)(sizeof(u2) * kBitsPerByte -  kInsnsSizeShift))
+#define kFlagPreHeaderCombined                                                        \
+  ((u2)(kFlagPreHeaderRegisterSize | kFlagPreHeaderInsSize | kFlagPreHeaderOutsSize | \
+        kFlagPreHeaderTriesSize | kFlagPreHeaderInsnsSize))
+
+#define kBitsPerIntPtrT ((int)(sizeof(intptr_t) * kBitsPerByte))
+
 #define kNumDexVersions 4
 #define kNumCDexVersions 1
 #define kDexVersionLen 4
@@ -368,5 +387,8 @@ char *dex_descriptorClassToDot(const char *);
 // Helper method to decode CompactDex CodeItem fields and read the preheader if necessary. If
 // decodeOnlyInsrCnt is specified then only the instruction count is decoded.
 void dex_DecodeCDexFields(cdexCode *, u4 *, u2 *, u2 *, u2 *, u2 *, bool);
+
+// Get CodeItem information from a DexMethod
+void dex_getCodeItemInfo(const u1 *, dexMethod *, u2 **, u4 *);
 
 #endif

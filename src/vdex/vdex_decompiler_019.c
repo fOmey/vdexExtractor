@@ -28,15 +28,23 @@ static size_t quicken_info_number_of_indices;
 static size_t quicken_index;
 
 static u2 GetData(size_t index) {
-  return quicken_info_ptr[index * 2] | (u2)(quicken_info_ptr[index * 2 + 1] << 8);
+  return quicken_info_ptr[index * 2] | ((u2)(quicken_info_ptr[index * 2 + 1]) << 8);
 }
 
-static size_t NumberOfIndices(size_t bytes) { return bytes / sizeof(u2); }
+static u4 NumberOfIndices(const u1 **data, u4 data_size) {
+  return data_size != 0 ? dex_readULeb128(data) : 0u;
+}
 
 static u2 *code_ptr;
 static u2 *code_end;
 static u4 dex_pc;
 static u4 cur_code_off;
+
+static void initQuickenInfoTable(const vdex_data_array_t *quickenData) {
+  quicken_info_ptr = quickenData->data;
+  quicken_index = 0;
+  quicken_info_number_of_indices = NumberOfIndices(&quicken_info_ptr, quickenData->size);
+}
 
 static void initCodeIterator(u2 *pCode, u4 codeSize, u4 startCodeOff) {
   code_ptr = pCode;
@@ -93,34 +101,24 @@ static void DecompileInvokeVirtual(u2 *insns, Code new_opcode, bool is_range) {
 
 bool vdex_decompiler_019_decompile(const u1 *dexFileBuf,
                                    dexMethod *pDexMethod,
-                                   const u1 *quickening_info,
-                                   u4 quickening_size,
+                                   const vdex_data_array_t *quickenData,
                                    bool decompile_return_instruction) {
-  if (quickening_size == 0 && !decompile_return_instruction) {
+  if (quickenData->size == 0 && !decompile_return_instruction) {
     return true;
   }
 
-  // We have different code items in Standard Dex and Compact Dex
+  // Get method's CodeItem information
   u2 *pCode = NULL;
   u4 codeSize = 0;
-  if (dex_checkType(dexFileBuf) == kNormalDex) {
-    dexCode *pDexCode = (dexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
-    pCode = pDexCode->insns;
-    codeSize = pDexCode->insnsSize;
-  } else {
-    cdexCode *pCdexCode = (cdexCode *)(dex_getDataAddr(dexFileBuf) + pDexMethod->codeOff);
-    pCode = pCdexCode->insns;
-    dex_DecodeCDexFields(pCdexCode, &codeSize, NULL, NULL, NULL, NULL, true);
-  }
+  dex_getCodeItemInfo(dexFileBuf, pDexMethod, &pCode, &codeSize);
 
   u4 startCodeOff = dex_getFirstInstrOff(dexFileBuf, pDexMethod);
 
-  quicken_info_ptr = quickening_info;
-  quicken_index = 0;
-  quicken_info_number_of_indices = NumberOfIndices(quickening_size);
-
-  log_dis("    quickening_size=%" PRIx32 " (%" PRIu32 ")\n", quickening_size, quickening_size);
+  // Initialize global data for every method that is decompiled
+  initQuickenInfoTable(quickenData);
   initCodeIterator(pCode, codeSize, startCodeOff);
+
+  log_dis("    quickening_size=%" PRIx32 " (%" PRIu32 ")\n", quickenData->size, quickenData->size);
 
   while (isCodeIteratorDone() == false) {
     bool hasCodeChange = true;
@@ -140,51 +138,67 @@ bool vdex_decompiler_019_decompile(const u1 *dexFileBuf,
         }
         break;
       case IGET_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET);
         break;
       case IGET_WIDE_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_WIDE);
         break;
       case IGET_OBJECT_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_OBJECT);
         break;
       case IGET_BOOLEAN_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_BOOLEAN);
         break;
       case IGET_BYTE_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_BYTE);
         break;
       case IGET_CHAR_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_CHAR);
         break;
       case IGET_SHORT_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IGET_SHORT);
         break;
       case IPUT_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT);
         break;
       case IPUT_BOOLEAN_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_BOOLEAN);
         break;
       case IPUT_BYTE_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_BYTE);
         break;
       case IPUT_CHAR_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_CHAR);
         break;
       case IPUT_SHORT_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_SHORT);
         break;
       case IPUT_WIDE_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_WIDE);
         break;
       case IPUT_OBJECT_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInstanceFieldAccess(code_ptr, IPUT_OBJECT);
         break;
       case INVOKE_VIRTUAL_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInvokeVirtual(code_ptr, INVOKE_VIRTUAL, false);
         break;
       case INVOKE_VIRTUAL_RANGE_QUICK:
+        CHECK_GT(quicken_info_number_of_indices, 0);
         DecompileInvokeVirtual(code_ptr, INVOKE_VIRTUAL_RANGE, true);
         break;
       default:
