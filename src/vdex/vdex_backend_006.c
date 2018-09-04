@@ -20,11 +20,9 @@
 
 */
 
-#include <sys/mman.h>
-
+#include "vdex_backend_006.h"
 #include "../out_writer.h"
 #include "../utils.h"
-#include "vdex_backend_006.h"
 #include "vdex_decompiler_006.h"
 
 static inline u4 decodeUint32WithOverflowCheck(const u1 **in, const u1 *end) {

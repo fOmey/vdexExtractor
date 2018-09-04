@@ -37,7 +37,7 @@ The following external libraries should be installed the in the host system:
 
 ```
 $ bin/vdexExtractor -h
-              vdexExtractor ver. 0.5.0
+              vdexExtractor ver. 0.5.1
     Anestis Bechtsoudis <anestis@census-labs.com>
   Copyright 2017 - 2018 by CENSUS S.A. All Rights Reserved.
 
@@ -49,6 +49,7 @@ $ bin/vdexExtractor -h
  --dis                : enable bytecode disassembler
  --ignore-crc-error   : decompiled Dex CRC errors are ignored (see issue #3)
  --new-crc=<path>     : text file with extracted Apk or Dex file location checksum(s)
+ --get-api             : get Android API level based on Vdex version (expects single Vdex file)
  -v, --debug=LEVEL    : log level (0 - FATAL ... 4 - DEBUG), default: '3' (INFO)
  -l, --log-file=<path>: save disassembler and/or verified dependencies output to log file (default is STDOUT)
  -h, --help           : this help
@@ -275,9 +276,39 @@ file #0: classDefsSize=8840
         -h|--help         : This help message
   ```
 
+* **tools/deodex/run.sh**
+
+  Helper tool to decompile (deodex) Vdex resources back to standard Dex files in a bulk manner. The
+  tool is automatically handling the case of CompactDex files (as introduced in Android Pie) and
+  uses the compact_dex_converter tool (more info
+  [here](https://github.com/anestisb/vdexExtractor/issues/23)) to convert back to StandardDex. Since
+  the converter is compiled as part of the AOSP sources, a set of binaries for Linux & maacOS is
+  maintained from the developer for convenience.
+
+  ```text
+  $ tools/deodex/run.sh -h
+    Usage: run.sh [options]
+      options:
+        -i|--input <path> : Directory with Vdex files or single file
+        -o|--output <dir> : Directory to save deodex'ed resources (default is '.')
+        -k|--keep         : Keep intermediate files (default 'false')
+        -h|--help         : This help message
+
+  $ tools/deodex/run.sh -i /tmp/vdex_samples -o /tmp/deodexed_samples
+  [INFO]: Processing 140 input Vdex files
+  [INFO]: 140 binaries have been successfully deodexed
+  ```
 
 ## Changelog
 
+* __0.5.1__ - 3 September 2018
+  * Improve handling of deduplicated shared data section when exporting CompactDex files after
+    decompilation
+  * Fixes an OOB read issue in Vdex 010 decompiler
+  * Fix Dex output header formatting glitch due to different magic size of CompactDex & StandardDex
+  * Option (`--get-api`) to query Android API level of a Vdex file (mostly useful when scripting
+    around the tool)
+  * deodex helper tool and URLs for compact_dex_converter binaries for Linux & macOS
 * __0.5.0__ - 30 August 2018
   * Vdex 019 support for Android Pie (verifier dependencies, decompiler & disassembler)
   * Extended Dex file parsing library to support CompactDex files

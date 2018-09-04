@@ -71,7 +71,7 @@ typedef __attribute__((__aligned__(1))) int32_t unaligned_s4;
 #define CHECK_GE(a, b) CHECK_IMPL((a), >=, (b))
 
 #define PROG_NAME "vdexExtractor"
-#define PROG_VERSION "0.5.0"
+#define PROG_VERSION "0.5.1"
 #define PROG_AUTHORS                                    \
   "    Anestis Bechtsoudis <anestis@census-labs.com>\n" \
   "  Copyright 2017 - 2018 by CENSUS S.A. All Rights Reserved."
@@ -90,6 +90,7 @@ typedef struct {
   bool ignoreCrc;
   bool dumpDeps;
   char *newCrcFile;
+  bool getApi;
 } runArgs_t;
 
 extern void exitWrapper(int);

@@ -23,7 +23,6 @@
 #ifndef _VDEX_API_H_
 #define _VDEX_API_H_
 
-#include <zlib.h>
 #include "common.h"
 
 typedef struct {
@@ -34,5 +33,6 @@ typedef struct {
 
 bool vdexApi_initEnv(const u1 *, vdex_api_env_t *);
 bool vdexApi_updateChecksums(const char *, int, u4 *, const runArgs_t *);
+bool vdexApi_printApiLevel(const char *);
 
 #endif
