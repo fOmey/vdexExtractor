@@ -202,6 +202,22 @@ static vdexDeps_010 *initDepsInfo(const u1 *vdexFileBuf) {
   return pVdexDeps;
 }
 
+static bool hasDepsData(vdexDeps_010 *pVdexDeps) {
+  for (u4 i = 0; i < pVdexDeps->numberOfDexFiles; ++i) {
+    const vdexDepData_010 *pVdexDepData = &pVdexDeps->pVdexDepData[i];
+    if (pVdexDepData->extraStrings.numberOfStrings > 0 ||
+        pVdexDepData->assignTypeSets.numberOfEntries > 0 ||
+        pVdexDepData->unassignTypeSets.numberOfEntries > 0 ||
+        pVdexDepData->classes.numberOfEntries > 0 || pVdexDepData->fields.numberOfEntries > 0 ||
+        pVdexDepData->methods.numberOfEntries > 0 ||
+        pVdexDepData->unvfyClasses.numberOfEntries > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static void destroyDepsInfo(const vdexDeps_010 *pVdexDeps) {
   for (u4 i = 0; i < pVdexDeps->numberOfDexFiles; ++i) {
     free((void *)pVdexDeps->pVdexDepData[i].extraStrings.strings);
@@ -220,8 +236,13 @@ void vdex_backend_010_dumpDepsInfo(const u1 *vdexFileBuf) {
   // Initialize depsInfo structs
   vdexDeps_010 *pVdexDeps = initDepsInfo(vdexFileBuf);
   if (pVdexDeps == NULL) {
-    LOGMSG(l_WARN, "Empty verified dependency data");
+    LOGMSG(l_WARN, "Malformed verified dependencies data");
     return;
+  }
+
+  if (!hasDepsData(pVdexDeps)) {
+    LOGMSG(l_DEBUG, "Empty verified dependencies data");
+    goto cleanup;
   }
 
   log_dis("------- Vdex Deps Info -------\n");
@@ -317,7 +338,8 @@ void vdex_backend_010_dumpDepsInfo(const u1 *vdexFileBuf) {
   }
   log_dis("----- EOF Vdex Deps Info -----\n");
 
-  // Cleanup
+// Cleanup
+cleanup:
   destroyDepsInfo(pVdexDeps);
 }
 
@@ -359,6 +381,7 @@ int vdex_backend_010_process(const char *VdexFileName,
     log_dis("file #%zu: classDefsSize=%" PRIu32 "\n", dex_file_idx,
             dex_getClassDefsSize(dexFileBuf));
     for (u4 i = 0; i < dex_getClassDefsSize(dexFileBuf); ++i) {
+      u4 lastIdx = 0;
       const dexClassDef *pDexClassDef = dex_getClassDef(dexFileBuf, i);
       dex_dumpClassInfo(dexFileBuf, i);
 
@@ -389,11 +412,13 @@ int vdex_backend_010_process(const char *VdexFileName,
       }
 
       // For each direct method
+      lastIdx = 0;  // transition to next array, reset last index
       for (u4 j = 0; j < pDexClassDataHeader.directMethodsSize; ++j) {
         dexMethod curDexMethod;
         memset(&curDexMethod, 0, sizeof(dexMethod));
         dex_readClassDataMethod(&curClassDataCursor, &curDexMethod);
-        dex_dumpMethodInfo(dexFileBuf, &curDexMethod, j, "direct");
+        dex_dumpMethodInfo(dexFileBuf, &curDexMethod, lastIdx, "direct");
+        lastIdx += curDexMethod.methodIdx;
 
         // Skip empty methods
         if (curDexMethod.codeOff == 0) {
@@ -419,11 +444,13 @@ int vdex_backend_010_process(const char *VdexFileName,
       }
 
       // For each virtual method
+      lastIdx = 0;  // transition to next array, reset last index
       for (u4 j = 0; j < pDexClassDataHeader.virtualMethodsSize; ++j) {
         dexMethod curDexMethod;
         memset(&curDexMethod, 0, sizeof(dexMethod));
         dex_readClassDataMethod(&curClassDataCursor, &curDexMethod);
-        dex_dumpMethodInfo(dexFileBuf, &curDexMethod, j, "virtual");
+        dex_dumpMethodInfo(dexFileBuf, &curDexMethod, lastIdx, "virtual");
+        lastIdx += curDexMethod.methodIdx;
 
         // Skip native or abstract methods
         if (curDexMethod.codeOff == 0) {

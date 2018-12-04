@@ -241,6 +241,22 @@ static vdexDeps_019 *initDepsInfo(const u1 *vdexFileBuf) {
   return pVdexDeps;
 }
 
+static bool hasDepsData(vdexDeps_019 *pVdexDeps) {
+  for (u4 i = 0; i < pVdexDeps->numberOfDexFiles; ++i) {
+    const vdexDepData_019 *pVdexDepData = &pVdexDeps->pVdexDepData[i];
+    if (pVdexDepData->extraStrings.numberOfStrings > 0 ||
+        pVdexDepData->assignTypeSets.numberOfEntries > 0 ||
+        pVdexDepData->unassignTypeSets.numberOfEntries > 0 ||
+        pVdexDepData->classes.numberOfEntries > 0 || pVdexDepData->fields.numberOfEntries > 0 ||
+        pVdexDepData->methods.numberOfEntries > 0 ||
+        pVdexDepData->unvfyClasses.numberOfEntries > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static void destroyDepsInfo(const vdexDeps_019 *pVdexDeps) {
   for (u4 i = 0; i < pVdexDeps->numberOfDexFiles; ++i) {
     free((void *)pVdexDeps->pVdexDepData[i].extraStrings.strings);
@@ -265,8 +281,13 @@ void vdex_backend_019_dumpDepsInfo(const u1 *vdexFileBuf) {
   // Initialize depsInfo structs
   vdexDeps_019 *pVdexDeps = initDepsInfo(vdexFileBuf);
   if (pVdexDeps == NULL) {
-    LOGMSG(l_WARN, "Empty verified dependency data");
+    LOGMSG(l_WARN, "Malformed verified dependencies data");
     return;
+  }
+
+  if (!hasDepsData(pVdexDeps)) {
+    LOGMSG(l_DEBUG, "Empty verified dependencies data");
+    goto cleanup;
   }
 
   log_dis("------- Vdex Deps Info -------\n");
@@ -363,7 +384,8 @@ void vdex_backend_019_dumpDepsInfo(const u1 *vdexFileBuf) {
   }
   log_dis("----- EOF Vdex Deps Info -----\n");
 
-  // Cleanup
+// Cleanup
+cleanup:
   destroyDepsInfo(pVdexDeps);
 }
 
@@ -428,7 +450,6 @@ int vdex_backend_019_process(const char *VdexFileName,
     for (u4 i = 0; i < dex_getClassDefsSize(dexFileBuf); ++i) {
       const dexClassDef *pDexClassDef = dex_getClassDef(dexFileBuf, i);
 
-      // TODO: Unhide APIs if we're unquickening
       dex_dumpClassInfo(dexFileBuf, i);
 
       // Last read field or method index to apply delta to
@@ -451,6 +472,10 @@ int vdex_backend_019_process(const char *VdexFileName,
         dexField pDexField;
         memset(&pDexField, 0, sizeof(dexField));
         dex_readClassDataField(&curClassDataCursor, &pDexField);
+
+        // APIs are unhidden regardless if we're decompiling or not
+        dex_unhideAccessFlags((u1 *)curClassDataCursor,
+                              dex_decodeAccessFlagsFromDex(pDexField.accessFlags), false);
       }
 
       // Skip instance fields
@@ -458,6 +483,10 @@ int vdex_backend_019_process(const char *VdexFileName,
         dexField pDexField;
         memset(&pDexField, 0, sizeof(dexField));
         dex_readClassDataField(&curClassDataCursor, &pDexField);
+
+        // APIs are unhidden regardless if we're decompiling or not
+        dex_unhideAccessFlags((u1 *)curClassDataCursor,
+                              dex_decodeAccessFlagsFromDex(pDexField.accessFlags), false);
       }
 
       // For each direct method
@@ -467,6 +496,10 @@ int vdex_backend_019_process(const char *VdexFileName,
         memset(&curDexMethod, 0, sizeof(dexMethod));
         dex_readClassDataMethod(&curClassDataCursor, &curDexMethod);
         dex_dumpMethodInfo(dexFileBuf, &curDexMethod, lastIdx, "direct");
+
+        // APIs are unhidden regardless if we're decompiling or not
+        dex_unhideAccessFlags((u1 *)curClassDataCursor,
+                              dex_decodeAccessFlagsFromDex(curDexMethod.accessFlags), true);
 
         // Skip empty methods
         if (curDexMethod.codeOff == 0) {
@@ -517,6 +550,10 @@ int vdex_backend_019_process(const char *VdexFileName,
         memset(&curDexMethod, 0, sizeof(dexMethod));
         dex_readClassDataMethod(&curClassDataCursor, &curDexMethod);
         dex_dumpMethodInfo(dexFileBuf, &curDexMethod, lastIdx, "virtual");
+
+        // APIs are unhidden regardless if we're decompiling or not
+        dex_unhideAccessFlags((u1 *)curClassDataCursor,
+                              dex_decodeAccessFlagsFromDex(curDexMethod.accessFlags), true);
 
         // Skip native or abstract methods
         if (curDexMethod.codeOff == 0) {

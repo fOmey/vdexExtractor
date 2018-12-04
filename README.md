@@ -37,7 +37,7 @@ The following external libraries should be installed the in the host system:
 
 ```
 $ bin/vdexExtractor -h
-              vdexExtractor ver. 0.5.1
+              vdexExtractor ver. 0.5.2
     Anestis Bechtsoudis <anestis@census-labs.com>
   Copyright 2017 - 2018 by CENSUS S.A. All Rights Reserved.
 
@@ -236,6 +236,54 @@ file #0: classDefsSize=8840
       1abbe2: e823 1000                              |001f: iput-object-quick v3, v2, [obj+0010]
 ```
 
+## Compact Dex Converter
+
+The Android 9 (Pie) release has introduced a new type of Dex file, the Compact Dex (Cdex). Cdex is
+an ART internal file format that is compacting various Dex data structs (e.g. method header) and
+deduplicates common data blobs (e.g. strings) in multi-dex files. The deduplicated data from the
+Dex files of an input application are stored in the shared section of the Vdex container.
+
+Now since the Vdex containers are storing Cdex files instead of standard Dex, the vdexExtractor
+backends (starting from version 019) have been updated to support them too. However, since the tool
+does not implement a Dex IR it is not possible to convert a Cdex file back to standard Dex without
+using an external tool. For this purpose the "compact_dex_converter" tool has been written, which
+uses the libdexlayout (Dex IR) from the AOSP art repo. The source code of the tool is available
+[here](https://gist.github.com/anestisb/30265097ad9a5ea2f0ddf7e36db3f07d). Compiling the tool
+requires forking the necessary AOSP repos and building as an AOSP module.
+
+For convenience vdexExtractor is implementing a helper tool (see "tools/deodex" in the following
+section) that downloads a set of precompiled binaries and wraps around the required automation. In
+addition the "compact_dex_converter" binaries can be downloaded from the following links:
+
+* Linux x86-64
+  * With shared libraries: https://1drv.ms/u/s!ArDC4mvMyPrRhEsiuPjOF_ssIfOe
+  * With shared libraries **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhE3Z2jdBXJIhazjc
+  * Statically compiled: https://1drv.ms/u/s!ArDC4mvMyPrRhEq96XX-LsCACF2s
+  * Statically compiled **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhEwmwM8--zdhoCB2
+* Linux x86-64 old CPUs (no SSE4.2 & no POPCNT [#29](https://github.com/anestisb/vdexExtractor/issues/29))
+  * With shared libraries: https://1drv.ms/u/s!ArDC4mvMyPrRhFP46IyBqOtihS9s
+  * With shared libraries **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhFXEGW9vrlMlTKDJ
+  * Statically compiled: https://1drv.ms/u/s!ArDC4mvMyPrRhFIFZCF9TtEHVooc
+  * Statically compiled **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhFSMELB_H3w5Cdfe
+* ARM64 (aarch64)
+  * With shared libraries: https://1drv.ms/u/s!ArDC4mvMyPrRhEindMOf3aWCbQRr
+  * With shared libraries **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhEnU9Ei_3MeQipGr
+  * Statically compiled: NOT SUPPORTED
+* macOS
+  * With shared libraries: https://1drv.ms/u/s!ArDC4mvMyPrRhE45gEUNolEiZ50u
+  * With shared libraries **debug**: https://1drv.ms/u/s!ArDC4mvMyPrRhFG5WH_zNz0jNarZ
+  * Statically compiled: NOT SUPPORTED
+
+The 's' suffix in binary names stands for "statically compiled" and the 'd' for "debug" build. They
+can be also combined (e.g. 'ds' - statically compiled debug build).
+
+### Update 14 Sept. 2018
+
+A functionally equivalent upstream
+[patch](https://android-review.googlesource.com/c/platform/art/+/751510) to art's oatdump utility
+has been contributed. AOSP master has merged, so hopefully it will ship with the next major OS
+update.
+
 
 ## Utility Scripts
 
@@ -301,6 +349,10 @@ file #0: classDefsSize=8840
 
 ## Changelog
 
+* __0.5.3__ - TBC
+  * Fix an issue in the method iterator of the Vdex 006 & 010 backends
+* __0.5.2__ - 22 September 2018
+  * Fix an issue when decompiling framework bytecode the APIs of which have been hidden
 * __0.5.1__ - 3 September 2018
   * Improve handling of deduplicated shared data section when exporting CompactDex files after
     decompilation
